@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { usersTable } from "@/database/schema";
 import { db } from "@/database/drizzle";
 import { eq } from "drizzle-orm";
+import redis from "@/database/redis";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const session = await auth();
@@ -13,21 +14,32 @@ const Layout = async ({ children }: { children: ReactNode }) => {
   if (!session) redirect("/sign-in");
 
   after(async () => {
-    if (!session?.user?.id) return;
+    const currentUserId = session?.user?.id;
+    if (!currentUserId) return;
 
-    const user = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, session.user.id))
-      .limit(1);
+    const redisKey = `user:activity:${currentUserId}`;
+    let currentUser = await redis.get(redisKey);
 
-    if (user[0].lastActivityDate === new Date().toISOString().slice(0, 10))
+    if (!currentUser) {
+      currentUser = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, currentUserId))
+        .limit(1);
+
+      await redis.set(redisKey, currentUser, { ex: 86400 });
+    }
+
+    if (
+      // @ts-ignore
+      currentUser[0].lastActivityDate === new Date().toISOString().slice(0, 10)
+    )
       return;
 
     await db
       .update(usersTable)
       .set({ lastActivityDate: new Date().toISOString().slice(0, 10) })
-      .where(eq(usersTable.id, session.user.id));
+      .where(eq(usersTable.id, currentUserId));
   });
 
   return (
