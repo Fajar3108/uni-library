@@ -1,6 +1,7 @@
 const config = {
   env: {
     apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT as string,
+    prodApiEndpoint: process.env.NEXT_PUBLIC_PROD_API_ENDPOINT as string,
     imagekit: {
       publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_KEY as string,
       privateKey: process.env.NEXT_PRIVATE_IMAGEKIT_KEY as string,
@@ -13,6 +14,7 @@ const config = {
       qstashUrl: process.env.QSTASH_URL as string,
       qstashToken: process.env.QSTASH_TOKEN as string,
     },
+    resendToken: process.env.RESEND_TOKEN as string,
   },
 };
 
